@@ -1,13 +1,13 @@
 from fastapi import APIRouter, status, HTTPException
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
-from starlette.responses import JSONResponse
 
 from auth.auth_service import get_current_user
 from auth.authentication import Auth
 from models.user import User
 from db.database import get_db
-from schema.user_schema import UserCreate, UserRead
+from schema.user_schema import UserCreate, UserRead, \
+    UserSuccessResponse, UserDeleteResponse
 from queries.user_queries import UserQueries
 from exceptions.orm import UserNotFound, UserAlreadyExist
 
@@ -17,17 +17,22 @@ user_router = APIRouter(
 )
 
 
-@user_router.get("/{username}", response_model=UserRead)
+@user_router.get("/{username}", response_model=UserSuccessResponse)
 async def get_user(username: str, db: Session = Depends(get_db),
                    current_user: User = Depends(get_current_user)):
     user = UserQueries.get_user_by_username(db=db, username=username)
     if not user:
         raise UserNotFound(status_code=status.HTTP_404_NOT_FOUND,
                            detail="User not found")
-    return user
+
+    return UserSuccessResponse(
+        message="User Fetched Successfully",
+        payload=UserRead.model_validate(user),
+        status=status.HTTP_200_OK
+    )
 
 
-@user_router.post("/create", response_model=UserRead,
+@user_router.post("/create", response_model=UserSuccessResponse,
                   status_code=status.HTTP_201_CREATED)
 async def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     existing_user = UserQueries.get_user_by_email(db=db,
@@ -44,10 +49,15 @@ async def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return new_user
+    return UserSuccessResponse(
+        message="User Created Successfully",
+        payload=UserRead.model_validate(new_user),
+        status=status.HTTP_201_CREATED
+    )
 
 
-@user_router.delete("/{username}", status_code=status.HTTP_204_NO_CONTENT)
+@user_router.delete("/{username}", status_code=status.HTTP_200_OK,
+                    response_model=UserDeleteResponse)
 async def delete_user(username: str, db: Session = Depends(get_db),
                       current_user: User = Depends(get_current_user)):
     user = UserQueries.get_user_by_username(db=db, username=username)
@@ -57,8 +67,13 @@ async def delete_user(username: str, db: Session = Depends(get_db),
     db.delete(user)
     db.commit()
 
+    return UserDeleteResponse(
+        message="User Deleted Successfully",
+        status=status.HTTP_200_OK
+    )
 
-@user_router.put("/{username}", response_model=UserRead)
+
+@user_router.put("/{username}", response_model=UserSuccessResponse)
 async def update_user(username: str, user_data: UserCreate,
                       db: Session = Depends(get_db),
                       current_user: User = Depends(get_current_user)):
@@ -72,4 +87,8 @@ async def update_user(username: str, user_data: UserCreate,
     user.password = hashed_pw
     db.commit()
     db.refresh(user)
-    return user
+    return UserSuccessResponse(
+        message="User Updated Successfully",
+        payload=UserRead.model_validate(user),
+        status=status.HTTP_200_OK
+    )

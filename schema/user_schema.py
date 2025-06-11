@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
 
@@ -18,3 +17,18 @@ class UserRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
+class UserSuccessResponse(BaseModel):
+    message: str
+    payload: UserRead
+    status: int
+
+
+class UserErrorResponse(BaseModel):
+    error: str
+    status: int
+
+
+class UserDeleteResponse(BaseModel):
+    message: str
+    status: int
