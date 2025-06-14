@@ -17,3 +17,4 @@ class User(Base):
     updated_at: Mapped[DateTime] = mapped_column(DateTime,
                                                  server_default=func.now(),
                                                  onupdate=func.now())
+    secret_key: Mapped[str] = mapped_column(String(128), nullable=False)

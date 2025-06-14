@@ -3,17 +3,17 @@ from datetime import timedelta, datetime, timezone
 import jwt
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from sqlalchemy.sql.annotation import Annotated
+
 
 from db.database import get_db
 from fastapi import Depends
 from auth.authentication import Auth
 from exceptions.auth import AuthError
 from queries.user_queries import UserQueries
-from config.config_loader import settings
+from config.config_loader import api_settings
 
-SECRET_KEY = settings.SECRET_KEY
-ALGORITHM = settings.ALGORITHM
+
+ALGORITHM = api_settings.ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
@@ -29,7 +29,7 @@ def authenticate_user(username: str, password: str,
     return user
 
 
-def create_access_token(data: dict, expiry: timedelta | None):
+def create_access_token(data: dict, expiry: timedelta | None, secret_key: str):
     user_data = data.copy()
     if expiry:
         expire = expiry + datetime.now(timezone.utc)
@@ -40,7 +40,7 @@ def create_access_token(data: dict, expiry: timedelta | None):
     })
     access_token = jwt.encode(
         payload=user_data,
-        key=SECRET_KEY,
+        key=secret_key,
         algorithm=ALGORITHM
     )
 
@@ -50,12 +50,13 @@ def create_access_token(data: dict, expiry: timedelta | None):
 def get_current_user(token: str = Depends(oauth2_scheme),
                      db: Session = Depends(get_db)):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, algorithms=[ALGORITHM], options={"verify_signature": False})
         username: str = payload.get("sub")
         if username is None:
             raise AuthError("Invalid token")
         user = UserQueries.get_user_by_username(db=db, username=username)
-        if user is None:
+        verified_payload = jwt.decode(token, user.secret_key, algorithms=[ALGORITHM])
+        if verified_payload.get("sub") != user.username:
             raise AuthError("Invalid token")
         return user
     except AuthError("Invalid token"):

@@ -1,14 +1,12 @@
 from fastapi import FastAPI
-from starlette.requests import Request
-from starlette.responses import JSONResponse
-
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse
 from exceptions.auth import AuthError
 from routes.auth_router import auth_router
-from utils.lifespan import lifespan
 from routes.user_route import user_router
 from exceptions.orm import UserAlreadyExist, UserNotFound
 
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 app.include_router(user_router)
 app.include_router(auth_router)
 
@@ -31,6 +29,7 @@ async def user_already_exist_exception_handler(request: Request,
         content={"detail": exc.detail,
                  "METHOD": request.method}
     )
+
 
 @app.exception_handler(AuthError)
 async def auth_error_handler(request: Request, exc: AuthError):

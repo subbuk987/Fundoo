@@ -6,7 +6,7 @@ from db.database import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    # init_db() Not Needed Because of Alembic
     yield
     print("Closing DB Connection")
 

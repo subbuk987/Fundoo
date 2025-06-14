@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status, HTTPException
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
-
+import secrets
 from auth.auth_service import get_current_user
 from auth.authentication import Auth
 from models.user import User
@@ -41,10 +41,12 @@ async def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
         raise UserAlreadyExist(status_code=status.HTTP_400_BAD_REQUEST,
                                detail="Email already exists")
     hashed_pw = Auth.hash_password(user_data.password)
+    secret_key = secrets.token_urlsafe(64)
     new_user = User(
         username=user_data.username,
         email=str(user_data.email),
-        password=hashed_pw
+        password=hashed_pw,
+        secret_key=secret_key
     )
     db.add(new_user)
     db.commit()

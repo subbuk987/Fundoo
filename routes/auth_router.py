@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from auth.auth_service import authenticate_user, create_access_token
-from config.config_loader import settings
+from config.config_loader import api_settings
 from db.database import get_db
 from exceptions.auth import AuthError
 from schema.token import Token
@@ -26,8 +26,8 @@ async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     user = authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise AuthError("Invalid credentials")
-    access_token_expiry = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token_expiry = timedelta(minutes=api_settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(data={
-        "sub": form_data.username
-    }, expiry=access_token_expiry)
+        "sub": form_data.username,
+    }, expiry=access_token_expiry, secret_key = user.secret_key)
     return Token(access_token=access_token, token_type="bearer")
