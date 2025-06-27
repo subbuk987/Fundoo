@@ -6,7 +6,7 @@ class UserNotFound(Exception):
 
     def __init__(self, detail: str,
                  status_code: int = status.HTTP_404_NOT_FOUND):
-        self.detail = detail
+        self.detail = "User not found"
         self.status_code = status_code
 
 

@@ -6,7 +6,9 @@ from sqlalchemy import pool
 from alembic import context
 from db.database import Base
 from models.user import User
-
+from models.note_label import note_label_association
+from models.note import Note
+from models.label import Label
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

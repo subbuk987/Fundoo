@@ -1,15 +1,30 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, UUID4
 from datetime import datetime
 
 
+
 class UserCreate(BaseModel):
+    first_name: str = Field(..., pattern=r'^[A-Z][a-zA-Z]{2,}$')
+    last_name: str = Field(..., pattern=r'^[A-Z][a-zA-Z]{2,}$')
     username: str
-    email: EmailStr
+    email: str
     password: str
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "first_name": "John",
+                "last_name": "Doe",
+                "username": "johndoe",
+                "email": "johndoe@gmail.com",
+                "password": "testpass@123"
+            }
+        }
+    }
 
 
 class UserRead(BaseModel):
-    id: int
+    id: UUID4
     username: str
     email: EmailStr
     created_at: datetime
@@ -21,7 +36,7 @@ class UserRead(BaseModel):
 class UserSuccessResponse(BaseModel):
     message: str
     payload: UserRead
-    status: int
+    status_code: int
 
 
 class UserErrorResponse(BaseModel):
@@ -32,3 +47,8 @@ class UserErrorResponse(BaseModel):
 class UserDeleteResponse(BaseModel):
     message: str
     status: int
+
+
+class UserLoginModel(BaseModel):
+    username: str
+    password: str
