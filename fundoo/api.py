@@ -1,13 +1,13 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
+from exceptions.handlers import register_all_errors
+from middleware.throttling import limiter, rate_limit_exceeded_handler
 from routes.auth_router import auth_router
 from routes.note_router import note_router
 from routes.user_route import user_router
-from exceptions.handlers import register_all_errors
-from fastapi.middleware.cors import CORSMiddleware
-from slowapi.middleware import SlowAPIMiddleware
-from middleware.throttling import limiter, rate_limit_exceeded_handler
 
 version = "v1"
 
@@ -17,7 +17,7 @@ A REST API for Fundoo - A note making application
 
 version_prefix = f"/api/{version}"
 
-app = FastAPI(
+fundoo_api = FastAPI(
     title="Fundoo",
     version=version,
     description=description,
@@ -29,18 +29,17 @@ app = FastAPI(
     docs_url=f"{version_prefix}/docs",
     redoc_url=f"{version_prefix}/redoc",
     openapi_url=f"{version_prefix}/openapi.json",
-    license_info={"name": "MIT License",
-                  "url": "https://opensource.org/license/mit"}
+    license_info={"name": "MIT License", "url": "https://opensource.org/license/mit"},
 )
 
-register_all_errors(app)
+register_all_errors(fundoo_api)
 
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
-app.add_middleware(SlowAPIMiddleware)
+fundoo_api.state.limiter = limiter
+fundoo_api.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+fundoo_api.add_middleware(SlowAPIMiddleware)
 
 
-app.add_middleware(
+fundoo_api.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
@@ -48,6 +47,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(user_router,prefix=f"{version_prefix}/users")
-app.include_router(auth_router, prefix=f"{version_prefix}/auth")
-app.include_router(note_router, prefix=f"{version_prefix}/notes")
+fundoo_api.include_router(user_router, prefix=f"{version_prefix}/users")
+fundoo_api.include_router(auth_router, prefix=f"{version_prefix}/auth")
+fundoo_api.include_router(note_router, prefix=f"{version_prefix}/notes")

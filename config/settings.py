@@ -1,6 +1,5 @@
-from pydantic import  PostgresDsn
+from pydantic import PostgresDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
 
 
 class DBSettings(BaseSettings):
@@ -20,7 +19,6 @@ class DBSettings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
 
-
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return PostgresDsn.build(
@@ -29,8 +27,9 @@ class DBSettings(BaseSettings):
             password=self.POSTGRESQL_PASSWORD,
             host=self.POSTGRESQL_SERVER,
             port=self.POSTGRESQL_PORT,
-            path=self.POSTGRESQL_DATABASE
+            path=self.POSTGRESQL_DATABASE,
         )
+
 
 class APISettings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -55,7 +54,6 @@ class EmailSettings(BaseSettings):
         env_ignore_empty=True,
     )
 
-
     MAIL_USERNAME: str
     MAIL_PASSWORD: str
     MAIL_FROM: str
@@ -68,4 +66,3 @@ class EmailSettings(BaseSettings):
 
     EMAIL_JWT_SECRET: str
     DOMAIN: str
-

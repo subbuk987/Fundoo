@@ -1,4 +1,4 @@
-from config.settings import DBSettings, APISettings, EmailSettings
+from config.settings import APISettings, DBSettings, EmailSettings
 
 db_settings = DBSettings()
 api_settings = APISettings()

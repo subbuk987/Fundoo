@@ -8,8 +8,10 @@ class AuthError(Exception):
 class InvalidToken(AuthError):
     """Custom exception for Invalid Token Errors"""
 
+
 class AccessTokenRequired(AuthError):
     """Custom exception for access token required"""
+
 
 class RefreshTokenRequired(AuthError):
     """Custom exception for refresh token required"""

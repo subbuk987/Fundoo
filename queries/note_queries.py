@@ -2,10 +2,11 @@ from typing import List
 from uuid import UUID
 
 from sqlalchemy.orm import Session
-from models.note import Note
+
 from models.label import Label
-from schema.note_schema import NoteCreate
+from models.note import Note
 from models.user import User
+from schema.note_schema import NoteCreate
 
 
 class NoteQueries:
@@ -27,14 +28,15 @@ class NoteQueries:
 
     @staticmethod
     def create_note(db: Session, user: User, note_data: NoteCreate) -> Note:
-        labels = [NoteQueries.get_or_create_label(db, name) for name in
-                  note_data.labels]
+        labels = [
+            NoteQueries.get_or_create_label(db, name) for name in note_data.labels
+        ]
 
         note = Note(
             title=note_data.title,
             content=note_data.content,
             user_id=user.id,
-            labels=labels
+            labels=labels,
         )
 
         db.add(note)
@@ -48,8 +50,9 @@ class NoteQueries:
 
     @staticmethod
     def get_note_by_id(db: Session, note_id: UUID, user: User) -> Note | None:
-        return db.query(Note).filter(Note.id == note_id,
-                                     Note.user_id == user.id).first()
+        return (
+            db.query(Note).filter(Note.id == note_id, Note.user_id == user.id).first()
+        )
 
     @staticmethod
     def delete_note(db: Session, note: Note):
@@ -60,8 +63,9 @@ class NoteQueries:
     def update_note(db: Session, note: Note, note_data: NoteCreate):
         note.title = note_data.title
         note.content = note_data.content
-        note.labels = [NoteQueries.get_or_create_label(db, name) for name in
-                       note_data.labels]
+        note.labels = [
+            NoteQueries.get_or_create_label(db, name) for name in note_data.labels
+        ]
         db.commit()
         db.refresh(note)
         return note

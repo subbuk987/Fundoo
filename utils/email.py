@@ -1,4 +1,5 @@
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from fastapi_mail import ConnectionConfig, FastMail, MessageSchema
+
 from config.config_loader import email_settings
 
 conf = ConnectionConfig(
@@ -13,6 +14,7 @@ conf = ConnectionConfig(
     USE_CREDENTIALS=email_settings.USE_CREDENTIALS,
 )
 
+
 async def send_email(subject: str, email_to: str, body: str):
     message = MessageSchema(
         subject=subject,
@@ -22,6 +24,3 @@ async def send_email(subject: str, email_to: str, body: str):
     )
     fm = FastMail(conf)
     await fm.send_message(message)
-
-
-

@@ -1,29 +1,29 @@
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.params import Depends
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import JSONResponse
-from fastapi import Request
-from auth.dependencies import RefreshTokenBearer, AccessTokenBearer
+
+from auth.authentication import Auth
+from auth.dependencies import AccessTokenBearer, RefreshTokenBearer
 from auth.services import create_access_token
-from celery_logic.celery_tasks import decode_url_safe_token, \
-    send_verification_email_task
+from celery_logic.celery_tasks import (decode_url_safe_token,
+                                       send_verification_email_task)
 from config.config_loader import api_settings
 from db.database import get_db
-from db.redis import add_jti_to_blocklist, cache_user_data, cache_user_notes, \
-    cache_user_labels, clear_user_cache
+from db.redis import (add_jti_to_blocklist, cache_user_data, cache_user_labels,
+                      cache_user_notes, clear_user_cache)
 from exceptions.auth import AuthError, InvalidToken
 from exceptions.orm import UserAlreadyExist, UserNotFound
 from middleware.throttling import limiter
 from queries.note_queries import NoteQueries
-from schema.note_schema import NoteRead, LabelRead
-from schema.token import Token
-from schema.user_schema import UserCreate, UserSuccessResponse, UserRead, \
-    UserLoginModel
 from queries.user_queries import UserQueries
-from auth.authentication import Auth
+from schema.note_schema import LabelRead, NoteRead
+from schema.token import Token
+from schema.user_schema import (UserCreate, UserLoginModel, UserRead,
+                                UserSuccessResponse)
 
 auth_router = APIRouter(
     tags=["auth"],
@@ -32,20 +32,20 @@ auth_router = APIRouter(
 
 @auth_router.post("/signup")
 @limiter.limit("5/minute")
-async def signup(request: Request,user_data: UserCreate, db: Session = Depends(get_db)):
+async def signup(
+    request: Request, user_data: UserCreate, db: Session = Depends(get_db)
+):
     user_by_username = UserQueries.get_user_by_username(db, user_data.username)
     user_by_email = UserQueries.get_user_by_email(db, user_data.email)
 
     if user_by_username:
         raise UserAlreadyExist(
-            detail="Username already exists",
-            status_code=status.HTTP_409_CONFLICT
+            detail="Username already exists", status_code=status.HTTP_409_CONFLICT
         )
 
     if user_by_email:
         raise UserAlreadyExist(
-            detail="Email already exists",
-            status_code=status.HTTP_409_CONFLICT
+            detail="Email already exists", status_code=status.HTTP_409_CONFLICT
         )
 
     new_user = UserQueries.create_user(db, user_data)
@@ -55,14 +55,15 @@ async def signup(request: Request,user_data: UserCreate, db: Session = Depends(g
     return UserSuccessResponse(
         message="User created",
         payload=UserRead.model_validate(new_user),
-        status_code=status.HTTP_201_CREATED
+        status_code=status.HTTP_201_CREATED,
     )
 
 
-@auth_router.post("/login", response_model=Token,
-                  status_code=status.HTTP_200_OK)
+@auth_router.post("/login", response_model=Token, status_code=status.HTTP_200_OK)
 @limiter.limit("5/minute")
-async def login(request: Request, credentials: UserLoginModel, db: Session = Depends(get_db)):
+async def login(
+    request: Request, credentials: UserLoginModel, db: Session = Depends(get_db)
+):
     username = credentials.username
     password = credentials.password
 
@@ -72,38 +73,32 @@ async def login(request: Request, credentials: UserLoginModel, db: Session = Dep
         raise AuthError(
             message="Invalid username.",
         )
-    data = {
-        "username": user.username,
-        "user_id": str(user.id)
-    }
+    data = {"username": user.username, "user_id": str(user.id)}
 
     if Auth.check_password(password, user.password_hash):
         if not user.is_verified:
             raise AuthError(
                 message="User Not Verified. Please verify your email.",
             )
-        access_token = create_access_token(data=data,
-                                           secret_key=user.secret_key)
+        access_token = create_access_token(data=data, secret_key=user.secret_key)
 
         refresh_token = create_access_token(
             data=data,
             secret_key=user.secret_key,
             refresh=True,
-            expiry=timedelta(minutes=api_settings.REFRESH_TOKEN_EXPIRE_MINUTES)
+            expiry=timedelta(minutes=api_settings.REFRESH_TOKEN_EXPIRE_MINUTES),
         )
 
         # Cache user, notes, and labels
-        await cache_user_data(user.username,
-                              UserRead.model_validate(user).model_dump())
+        await cache_user_data(user.username, UserRead.model_validate(user).model_dump())
         notes = NoteQueries.get_user_notes(db, user)
-        await cache_user_notes(user.username,
-                               [NoteRead.model_validate(n).model_dump() for n
-                                in notes])
-        labels = NoteQueries.get_all_labels(
-            db)
-        await cache_user_labels(user.username,
-                                [LabelRead.model_validate(l).model_dump() for l
-                                 in labels])
+        await cache_user_notes(
+            user.username, [NoteRead.model_validate(n).model_dump() for n in notes]
+        )
+        labels = NoteQueries.get_all_labels(db)
+        await cache_user_labels(
+            user.username, [LabelRead.model_validate(l).model_dump() for l in labels]
+        )
         return Token(
             access_token=access_token,
             refresh_token=refresh_token,
@@ -118,9 +113,10 @@ async def login(request: Request, credentials: UserLoginModel, db: Session = Dep
 @auth_router.get("/refresh_token")
 @limiter.limit("5/minute")
 async def get_new_access_token(
-        request: Request,
-        token_data: dict = Depends(RefreshTokenBearer()),
-        db: Session = Depends(get_db)):
+    request: Request,
+    token_data: dict = Depends(RefreshTokenBearer()),
+    db: Session = Depends(get_db),
+):
     expiry = token_data["exp"]
     username = token_data["user"]["username"]
 
@@ -128,8 +124,7 @@ async def get_new_access_token(
 
     if datetime.fromtimestamp(expiry) > datetime.now():
         new_access_token = create_access_token(
-            data=token_data["user"],
-            secret_key= str(user.secret_key)
+            data=token_data["user"], secret_key=str(user.secret_key)
         )
 
         return JSONResponse({"access_token": new_access_token})
@@ -148,13 +143,14 @@ async def logout(request: Request, token_data: dict = Depends(AccessTokenBearer(
     await add_jti_to_blocklist(jti)
     await clear_user_cache(username)
 
-    return JSONResponse({
-        "message" : "You are now logged out."
-    })
+    return JSONResponse({"message": "You are now logged out."})
+
 
 @auth_router.get("/verify/{token}")
 @limiter.limit("5/minute")
-async def verify_user_account(request: Request, token: str, db: Session = Depends(get_db)):
+async def verify_user_account(
+    request: Request, token: str, db: Session = Depends(get_db)
+):
 
     token_data = decode_url_safe_token(token)
 
@@ -165,8 +161,7 @@ async def verify_user_account(request: Request, token: str, db: Session = Depend
 
         if not user:
             raise UserNotFound(
-                detail="User not found",
-                status_code=status.HTTP_404_NOT_FOUND
+                detail="User not found", status_code=status.HTTP_404_NOT_FOUND
             )
 
         UserQueries.update_verified_user(user, db)

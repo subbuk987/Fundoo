@@ -1,11 +1,11 @@
-from pydantic import BaseModel, EmailStr, ConfigDict, Field, UUID4
 from datetime import datetime
 
+from pydantic import UUID4, BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreate(BaseModel):
-    first_name: str = Field(..., pattern=r'^[A-Z][a-zA-Z]{2,}$')
-    last_name: str = Field(..., pattern=r'^[A-Z][a-zA-Z]{2,}$')
+    first_name: str = Field(..., pattern=r"^[A-Z][a-zA-Z]{2,}$")
+    last_name: str = Field(..., pattern=r"^[A-Z][a-zA-Z]{2,}$")
     username: str
     email: str
     password: str
@@ -17,7 +17,7 @@ class UserCreate(BaseModel):
                 "last_name": "Doe",
                 "username": "johndoe",
                 "email": "johndoe@gmail.com",
-                "password": "testpass@123"
+                "password": "testpass@123",
             }
         }
     }

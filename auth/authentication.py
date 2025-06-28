@@ -1,15 +1,14 @@
-from bcrypt import hashpw, checkpw, gensalt
+from bcrypt import checkpw, gensalt, hashpw
 
 
 class Auth:
     @staticmethod
     def hash_password(password):
-        return hashpw(password.encode('utf-8'), gensalt()).decode('utf-8')
+        return hashpw(password.encode("utf-8"), gensalt()).decode("utf-8")
 
     @staticmethod
     def check_password(password, hashed_password):
-        return checkpw(password.encode('utf-8'),
-                       hashed_password.encode('utf-8'))
+        return checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
 
 
 if __name__ == "__main__":

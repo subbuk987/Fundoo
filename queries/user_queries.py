@@ -1,11 +1,11 @@
 import secrets
 
-from sqlalchemy.orm import Session
 from fastapi import status
+from sqlalchemy.orm import Session
 
 from auth.authentication import Auth
 from models.user import User
-from schema.user_schema import UserCreate, UserSuccessResponse, UserRead
+from schema.user_schema import UserCreate, UserRead, UserSuccessResponse
 
 
 class UserQueries:

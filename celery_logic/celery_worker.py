@@ -10,11 +10,8 @@ celery_app = Celery(
 celery_app.conf.timezone = "Asia/Kolkata"
 
 celery_app.conf.beat_schedule = {
-    'send-daily-report': {
-        'task': 'app.tasks.send_daily_report',
-        'schedule': crontab(minute=0),
+    "send-daily-report": {
+        "task": "fundoo.tasks.send_daily_report",
+        "schedule": crontab(minute=0),
     },
 }
-
-
-
